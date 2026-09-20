@@ -79,7 +79,7 @@ export default function HistoryPage() {
               distribucion y despues decidio transformar esa experiencia en produccion propia.
             </p>
           </div>
-          <div className="media-panel">
+          <div className="media-panel contain">
             <img src="/images/nocera-fabrica.jpg" alt="Fabrica Nocera Birra en Quilmes Oeste" />
           </div>
         </div>

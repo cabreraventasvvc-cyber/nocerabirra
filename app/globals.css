@@ -421,6 +421,12 @@ img {
   object-fit: cover;
 }
 
+.media-panel.contain img {
+  height: auto;
+  min-height: 0;
+  object-fit: contain;
+}
+
 .image-stack {
   display: grid;
   grid-template-columns: 0.9fr 1.1fr;
