@@ -22,8 +22,8 @@ export function Header() {
         <Link href="/" className="brand-mark" aria-label="Inicio Nocera">
           <Image src="/images/nocera-logo.png" alt="Nocera Birra" width={84} height={84} priority />
           <div>
-            Nocera
-            <span>Distribuidora y Birra</span>
+            Nocera Birra
+            <span>Distribuidora oficial</span>
           </div>
         </Link>
 
