@@ -40,11 +40,11 @@ export default async function HomePage() {
     <main>
       <section className="hero">
         <div className="hero-content">
-          <p className="eyebrow">Distribuidora mayorista y productos propios</p>
-          <h1>Nocera</h1>
+          <p className="eyebrow">Distribuidora oficial y productos propios</p>
+          <h1>Nocera Birra</h1>
           <p>
-            Una plataforma para comprar bebidas, descubrir Nocera Birra y preparar el crecimiento
-            comercial de la marca desde un unico panel.
+            Compra bebidas, descubri productos propios y gestiona pedidos comerciales desde una
+            plataforma preparada para crecer.
           </p>
           <div className="hero-actions">
             <Link className="button" href="/pedido-rapido">
