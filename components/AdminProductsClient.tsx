@@ -1,0 +1,422 @@
+"use client";
+
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createBrowserSupabaseClient } from "@/lib/supabase";
+import { formatPrice } from "./CartProvider";
+
+type CategoryOption = {
+  id: string;
+  slug: string;
+  name: string;
+};
+
+type AdminProduct = {
+  id: string;
+  code: string | null;
+  name: string;
+  description: string | null;
+  brand: string | null;
+  category_id: string | null;
+  presentation: string | null;
+  unit: string | null;
+  pack_quantity: number | null;
+  price: number;
+  stock_status: string;
+  active: boolean;
+  featured: boolean;
+  nocera_product: boolean;
+  image_path: string | null;
+};
+
+type ProductForm = {
+  id?: string;
+  code: string;
+  name: string;
+  description: string;
+  brand: string;
+  categoryId: string;
+  presentation: string;
+  unit: string;
+  packQuantity: string;
+  price: string;
+  stockStatus: "available" | "out_of_stock";
+  active: boolean;
+  featured: boolean;
+  noceraProduct: boolean;
+  imagePath: string;
+};
+
+const emptyForm: ProductForm = {
+  code: "",
+  name: "",
+  description: "",
+  brand: "",
+  categoryId: "",
+  presentation: "",
+  unit: "unidad",
+  packQuantity: "",
+  price: "",
+  stockStatus: "available",
+  active: true,
+  featured: false,
+  noceraProduct: false,
+  imagePath: ""
+};
+
+export function AdminProductsClient() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState("");
+  const [email, setEmail] = useState("");
+  const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [query, setQuery] = useState("");
+  const [form, setForm] = useState<ProductForm>(emptyForm);
+
+  const visibleProducts = useMemo(() => {
+    const normalized = query.toLowerCase();
+    return products.filter((product) =>
+      `${product.code ?? ""} ${product.name} ${product.brand ?? ""}`.toLowerCase().includes(normalized)
+    );
+  }, [products, query]);
+
+  useEffect(() => {
+    loadAdminData();
+  }, []);
+
+  async function loadAdminData() {
+    setLoading(true);
+    setStatus("");
+    const supabase = createBrowserSupabaseClient();
+    const { data: sessionData } = await supabase.auth.getSession();
+
+    if (!sessionData.session) {
+      router.push("/admin/login");
+      return;
+    }
+
+    setEmail(sessionData.session.user.email ?? "");
+
+    const [productResult, categoryResult] = await Promise.all([
+      supabase
+        .from("products")
+        .select(
+          "id,code,name,description,brand,category_id,presentation,unit,pack_quantity,price,stock_status,active,featured,nocera_product,image_path"
+        )
+        .order("name", { ascending: true }),
+      supabase.from("categories").select("id,slug,name").order("sort_order", { ascending: true })
+    ]);
+
+    if (productResult.error || categoryResult.error) {
+      setStatus("No se pudieron cargar productos. Revisar permisos de administrador en Supabase.");
+      setLoading(false);
+      return;
+    }
+
+    const loadedCategories = (categoryResult.data ?? []) as CategoryOption[];
+    setCategories(loadedCategories);
+    setProducts((productResult.data ?? []) as AdminProduct[]);
+    setForm((current) => ({
+      ...current,
+      categoryId: current.categoryId || loadedCategories[0]?.id || ""
+    }));
+    setLoading(false);
+  }
+
+  async function logout() {
+    const supabase = createBrowserSupabaseClient();
+    await supabase.auth.signOut();
+    router.push("/admin/login");
+  }
+
+  function editProduct(product: AdminProduct) {
+    setForm({
+      id: product.id,
+      code: product.code ?? "",
+      name: product.name,
+      description: product.description ?? "",
+      brand: product.brand ?? "",
+      categoryId: product.category_id ?? categories[0]?.id ?? "",
+      presentation: product.presentation ?? "",
+      unit: product.unit ?? "unidad",
+      packQuantity: product.pack_quantity?.toString() ?? "",
+      price: product.price.toString(),
+      stockStatus: product.stock_status === "out_of_stock" ? "out_of_stock" : "available",
+      active: product.active,
+      featured: product.featured,
+      noceraProduct: product.nocera_product,
+      imagePath: product.image_path ?? ""
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function saveProduct(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setStatus("");
+
+    const supabase = createBrowserSupabaseClient();
+    const payload = {
+      code: form.code.trim().toUpperCase(),
+      name: form.name.trim(),
+      description: form.description.trim() || null,
+      brand: form.brand.trim() || null,
+      category_id: form.categoryId || null,
+      presentation: form.presentation.trim() || null,
+      unit: form.unit.trim() || null,
+      pack_quantity: form.packQuantity ? Number(form.packQuantity) : null,
+      price: Number(form.price),
+      stock_status: form.stockStatus,
+      active: form.active,
+      featured: form.featured,
+      nocera_product: form.noceraProduct,
+      image_path: form.imagePath.trim() || null
+    };
+
+    const result = form.id
+      ? await supabase.from("products").update(payload).eq("id", form.id)
+      : await supabase.from("products").insert(payload);
+
+    setSaving(false);
+    if (result.error) {
+      setStatus(`No se pudo guardar: ${result.error.message}`);
+      return;
+    }
+
+    setStatus(form.id ? "Producto actualizado." : "Producto agregado.");
+    setForm({ ...emptyForm, categoryId: categories[0]?.id || "" });
+    await loadAdminData();
+  }
+
+  async function toggleActive(product: AdminProduct) {
+    const supabase = createBrowserSupabaseClient();
+    const { error } = await supabase.from("products").update({ active: !product.active }).eq("id", product.id);
+    if (error) {
+      setStatus(`No se pudo cambiar el estado: ${error.message}`);
+      return;
+    }
+    await loadAdminData();
+  }
+
+  async function deleteProduct(product: AdminProduct) {
+    const confirmed = window.confirm(`Eliminar definitivamente ${product.name}?`);
+    if (!confirmed) {
+      return;
+    }
+
+    const supabase = createBrowserSupabaseClient();
+    const { error } = await supabase.from("products").delete().eq("id", product.id);
+    if (error) {
+      setStatus(`No se pudo eliminar: ${error.message}`);
+      return;
+    }
+    await loadAdminData();
+  }
+
+  if (loading) {
+    return <div className="panel">Cargando administrador...</div>;
+  }
+
+  return (
+    <div className="admin-products">
+      <section className="panel form-stack">
+        <div className="admin-toolbar">
+          <div>
+            <strong>{form.id ? "Editar producto" : "Agregar producto"}</strong>
+            <p className="muted">Sesion: {email}</p>
+          </div>
+          <button className="button ghost" type="button" onClick={logout}>
+            Salir
+          </button>
+        </div>
+
+        <form className="form-stack" onSubmit={saveProduct}>
+          <div className="form-grid">
+            <input
+              className="input"
+              placeholder="Codigo"
+              value={form.code}
+              onChange={(event) => setForm({ ...form, code: event.target.value })}
+              required
+            />
+            <input
+              className="input"
+              placeholder="Nombre"
+              value={form.name}
+              onChange={(event) => setForm({ ...form, name: event.target.value })}
+              required
+            />
+            <select
+              className="select"
+              value={form.categoryId}
+              onChange={(event) => setForm({ ...form, categoryId: event.target.value })}
+            >
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+            <input
+              className="input"
+              placeholder="Marca"
+              value={form.brand}
+              onChange={(event) => setForm({ ...form, brand: event.target.value })}
+            />
+            <input
+              className="input"
+              placeholder="Presentacion"
+              value={form.presentation}
+              onChange={(event) => setForm({ ...form, presentation: event.target.value })}
+            />
+            <input
+              className="input"
+              placeholder="Unidad"
+              value={form.unit}
+              onChange={(event) => setForm({ ...form, unit: event.target.value })}
+            />
+            <input
+              className="input"
+              min="0"
+              step="0.01"
+              type="number"
+              placeholder="Precio"
+              value={form.price}
+              onChange={(event) => setForm({ ...form, price: event.target.value })}
+              required
+            />
+            <input
+              className="input"
+              min="0"
+              step="1"
+              type="number"
+              placeholder="Unidades por pack opcional"
+              value={form.packQuantity}
+              onChange={(event) => setForm({ ...form, packQuantity: event.target.value })}
+            />
+            <select
+              className="select"
+              value={form.stockStatus}
+              onChange={(event) =>
+                setForm({ ...form, stockStatus: event.target.value as ProductForm["stockStatus"] })
+              }
+            >
+              <option value="available">Disponible</option>
+              <option value="out_of_stock">Sin stock</option>
+            </select>
+            <input
+              className="input"
+              placeholder="URL o ruta de foto"
+              value={form.imagePath}
+              onChange={(event) => setForm({ ...form, imagePath: event.target.value })}
+            />
+            <textarea
+              className="textarea full"
+              placeholder="Descripcion"
+              value={form.description}
+              onChange={(event) => setForm({ ...form, description: event.target.value })}
+            />
+          </div>
+
+          <div className="checkbox-row">
+            <label>
+              <input
+                type="checkbox"
+                checked={form.active}
+                onChange={(event) => setForm({ ...form, active: event.target.checked })}
+              />
+              Activo
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={form.featured}
+                onChange={(event) => setForm({ ...form, featured: event.target.checked })}
+              />
+              Destacado
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={form.noceraProduct}
+                onChange={(event) => setForm({ ...form, noceraProduct: event.target.checked })}
+              />
+              Producto Nocera
+            </label>
+          </div>
+
+          <div className="form-actions">
+            <button className="button" type="submit" disabled={saving}>
+              {saving ? "Guardando..." : form.id ? "Guardar cambios" : "Agregar producto"}
+            </button>
+            <button
+              className="button ghost"
+              type="button"
+              onClick={() => setForm({ ...emptyForm, categoryId: categories[0]?.id || "" })}
+            >
+              Nuevo
+            </button>
+          </div>
+          {status && <p className="form-status">{status}</p>}
+        </form>
+      </section>
+
+      <section className="panel">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Catalogo</p>
+            <h2>Productos</h2>
+            <p>{visibleProducts.length} productos encontrados.</p>
+          </div>
+          <input
+            className="input admin-search"
+            placeholder="Buscar por codigo, nombre o marca"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </div>
+
+        <div className="table-scroll">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Codigo</th>
+                <th>Producto</th>
+                <th>Precio</th>
+                <th>Stock</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleProducts.map((product) => (
+                <tr key={product.id}>
+                  <td>{product.code}</td>
+                  <td>{product.name}</td>
+                  <td>${formatPrice(Number(product.price))}</td>
+                  <td>{product.stock_status === "available" ? "Disponible" : "Sin stock"}</td>
+                  <td>{product.active ? "Activo" : "Inactivo"}</td>
+                  <td>
+                    <div className="table-actions">
+                      <button className="button ghost" type="button" onClick={() => editProduct(product)}>
+                        Editar
+                      </button>
+                      <button className="button ghost" type="button" onClick={() => toggleActive(product)}>
+                        {product.active ? "Desactivar" : "Activar"}
+                      </button>
+                      <button className="button ghost" type="button" onClick={() => deleteProduct(product)}>
+                        Eliminar
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}

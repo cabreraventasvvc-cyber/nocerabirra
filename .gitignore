@@ -1,0 +1,17 @@
+.next
+node_modules
+out
+dist
+.env
+.env.local
+.env.*.local
+tsconfig.tsbuildinfo
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+/L1.19.9 (1).pdf
+/franquicia.webp
+/images*.jpg
+/nocera-birra-1617991.jpg
+/nocera-web.txt
