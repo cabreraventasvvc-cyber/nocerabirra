@@ -50,9 +50,7 @@ img {
 
 .site-shell {
   min-height: 100vh;
-  background:
-    linear-gradient(180deg, rgba(9, 8, 7, 0.78), rgba(9, 8, 7, 0.3) 42%, rgba(255, 250, 241, 0) 68%),
-    var(--paper);
+  background: var(--paper);
 }
 
 .site-header {
