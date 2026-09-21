@@ -1,6 +1,6 @@
 -- Admin access for Nocera backoffice.
 -- Run after creating an admin user in Supabase Authentication.
--- Replace the email below before running.
+-- Admin user: distribuidoradesimone@gmail.com
 
 create table if not exists public.admin_users (
   email text primary key,
@@ -58,5 +58,5 @@ with check (
 );
 
 insert into public.admin_users (email)
-values ('CAMBIAR-POR-EMAIL-ADMIN')
+values ('distribuidoradesimone@gmail.com')
 on conflict (email) do nothing;
