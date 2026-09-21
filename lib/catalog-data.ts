@@ -16,6 +16,7 @@ type SupabaseProductRow = {
   promotion_starts_at: string | null;
   promotion_ends_at: string | null;
   stock_status: string;
+  stock_quantity: number | null;
   active: boolean;
   featured: boolean;
   nocera_product: boolean;
@@ -61,7 +62,7 @@ export async function getCatalogData(): Promise<CatalogData> {
       supabase
         .from("products")
         .select(
-          "id,code,name,description,brand,presentation,unit,pack_quantity,price,promotional_price,promotion_starts_at,promotion_ends_at,stock_status,active,featured,nocera_product,image_path,updated_at,categories(slug)"
+          "id,code,name,description,brand,presentation,unit,pack_quantity,price,promotional_price,promotion_starts_at,promotion_ends_at,stock_status,stock_quantity,active,featured,nocera_product,image_path,updated_at,categories(slug)"
         )
         .eq("active", true)
         .order("name", { ascending: true })
@@ -119,7 +120,8 @@ function mapProduct(row: SupabaseProductRow): Product {
     promotionalPrice: row.promotional_price === null ? null : Number(row.promotional_price),
     promotionStartsAt: row.promotion_starts_at,
     promotionEndsAt: row.promotion_ends_at,
-    available: row.stock_status === "available",
+    available: row.stock_status === "available" && (row.stock_quantity === null || Number(row.stock_quantity) > 0),
+    stockQuantity: row.stock_quantity === null ? null : Number(row.stock_quantity),
     active: row.active,
     featured: row.featured,
     noceraProduct: row.nocera_product,

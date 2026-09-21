@@ -21,6 +21,7 @@ export type Product = {
   promotionStartsAt: string | null;
   promotionEndsAt: string | null;
   available: boolean;
+  stockQuantity?: number | null;
   active: boolean;
   featured: boolean;
   noceraProduct: boolean;

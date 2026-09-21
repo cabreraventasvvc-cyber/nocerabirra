@@ -36,6 +36,7 @@ export function QuickOrderClient({ products }: { products: Product[] }) {
       {visibleProducts.map((product) => {
         const quantity = quantities[product.id] ?? 1;
         const canBuy = product.available && product.price > 0;
+        const hasControlledStock = product.stockQuantity !== null && product.stockQuantity !== undefined;
         const effectivePrice = getEffectivePrice(product);
         const isPromotional = hasActivePromotion(product);
         return (
@@ -44,6 +45,12 @@ export function QuickOrderClient({ products }: { products: Product[] }) {
               <strong>{product.name}</strong>
               <br />
               <small>{product.code}</small>
+              {hasControlledStock && (
+                <>
+                  <br />
+                  <small>Stock: {product.stockQuantity}</small>
+                </>
+              )}
             </span>
             <span>{product.presentation}</span>
             <span>
@@ -59,10 +66,14 @@ export function QuickOrderClient({ products }: { products: Product[] }) {
             <input
               className="input"
               min={1}
+              max={hasControlledStock ? product.stockQuantity ?? undefined : undefined}
               type="number"
               value={quantity}
               onChange={(event) =>
-                setQuantities({ ...quantities, [product.id]: Number(event.target.value) || 1 })
+                setQuantities({
+                  ...quantities,
+                  [product.id]: normalizeQuantity(Number(event.target.value) || 1, product.stockQuantity)
+                })
               }
             />
             <button className="button ghost" type="button" disabled={!canBuy} onClick={() => cart.addItem(product, quantity)}>
@@ -73,4 +84,12 @@ export function QuickOrderClient({ products }: { products: Product[] }) {
       })}
     </div>
   );
+}
+
+function normalizeQuantity(quantity: number, stockQuantity?: number | null) {
+  if (stockQuantity === null || stockQuantity === undefined) {
+    return quantity;
+  }
+
+  return Math.min(quantity, Math.max(1, Math.floor(stockQuantity)));
 }

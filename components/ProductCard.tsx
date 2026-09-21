@@ -25,6 +25,9 @@ export function ProductCard({ product }: { product: Product }) {
         <p>{product.presentation}</p>
         <p>{product.description}</p>
         {!product.available && <p className="product-code">Sin stock</p>}
+        {product.stockQuantity !== null && product.stockQuantity !== undefined && product.available && (
+          <p className="product-code">Stock: {product.stockQuantity}</p>
+        )}
         <div className="price-row">
           <span className="price">
             {canBuy ? (

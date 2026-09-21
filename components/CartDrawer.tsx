@@ -15,16 +15,29 @@ const initialCheckout: CheckoutData = {
 export function CartDrawer() {
   const cart = useCart();
   const [checkout, setCheckout] = useState<CheckoutData>(initialCheckout);
+  const [submitting, setSubmitting] = useState(false);
+  const [status, setStatus] = useState("");
 
   if (!cart.isOpen) {
     return null;
   }
 
-  function submitOrder(event: FormEvent<HTMLFormElement>) {
+  async function submitOrder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (cart.items.length === 0) {
       return;
     }
+
+    setSubmitting(true);
+    setStatus("");
+    const stockResult = await cart.reserveStock();
+    setSubmitting(false);
+
+    if (!stockResult.ok) {
+      setStatus(stockResult.message ?? "No se pudo reservar el stock. Revisar cantidades.");
+      return;
+    }
+
     window.open(cart.buildWhatsappUrl(checkout), "_blank", "noopener,noreferrer");
   }
 
@@ -46,6 +59,9 @@ export function CartDrawer() {
               <div>
                 <strong>{item.product.name}</strong>
                 <p className="muted">{item.product.presentation}</p>
+                {item.product.stockQuantity !== null && item.product.stockQuantity !== undefined && (
+                  <p className="muted">Stock: {item.product.stockQuantity}</p>
+                )}
                 <span>${formatPrice(getEffectivePrice(item.product) * item.quantity)}</span>
               </div>
               <div className="cart-controls">
@@ -62,6 +78,7 @@ export function CartDrawer() {
                   className="icon-button"
                   type="button"
                   onClick={() => cart.updateQuantity(item.product.id, item.quantity + 1)}
+                  disabled={item.product.stockQuantity !== null && item.product.stockQuantity !== undefined && item.quantity >= item.product.stockQuantity}
                   aria-label="Sumar unidad"
                 >
                   +
@@ -122,13 +139,14 @@ export function CartDrawer() {
               />
             </div>
             <div className="form-actions">
-              <button className="button" type="submit">
-                Enviar por WhatsApp
+              <button className="button" type="submit" disabled={submitting}>
+                {submitting ? "Reservando stock..." : "Enviar por WhatsApp"}
               </button>
               <button className="button secondary" type="button" onClick={cart.clearCart}>
                 Vaciar
               </button>
             </div>
+            {status && <p className="form-status">{status}</p>}
           </form>
         </>
       )}

@@ -23,6 +23,7 @@ type AdminProduct = {
   pack_quantity: number | null;
   price: number;
   stock_status: string;
+  stock_quantity: number | null;
   active: boolean;
   featured: boolean;
   nocera_product: boolean;
@@ -41,6 +42,7 @@ type ProductForm = {
   packQuantity: string;
   price: string;
   stockStatus: "available" | "out_of_stock";
+  stockQuantity: string;
   active: boolean;
   featured: boolean;
   noceraProduct: boolean;
@@ -58,6 +60,7 @@ const emptyForm: ProductForm = {
   packQuantity: "",
   price: "",
   stockStatus: "available",
+  stockQuantity: "",
   active: true,
   featured: false,
   noceraProduct: false,
@@ -103,7 +106,7 @@ export function AdminProductsClient() {
       supabase
         .from("products")
         .select(
-          "id,code,name,description,brand,category_id,presentation,unit,pack_quantity,price,stock_status,active,featured,nocera_product,image_path"
+          "id,code,name,description,brand,category_id,presentation,unit,pack_quantity,price,stock_status,stock_quantity,active,featured,nocera_product,image_path"
         )
         .order("name", { ascending: true }),
       supabase.from("categories").select("id,slug,name").order("sort_order", { ascending: true })
@@ -144,6 +147,7 @@ export function AdminProductsClient() {
       packQuantity: product.pack_quantity?.toString() ?? "",
       price: product.price.toString(),
       stockStatus: product.stock_status === "out_of_stock" ? "out_of_stock" : "available",
+      stockQuantity: product.stock_quantity?.toString() ?? "",
       active: product.active,
       featured: product.featured,
       noceraProduct: product.nocera_product,
@@ -169,6 +173,7 @@ export function AdminProductsClient() {
       pack_quantity: form.packQuantity ? Number(form.packQuantity) : null,
       price: Number(form.price),
       stock_status: form.stockStatus,
+      stock_quantity: form.stockQuantity ? Number(form.stockQuantity) : null,
       active: form.active,
       featured: form.featured,
       nocera_product: form.noceraProduct,
@@ -308,6 +313,15 @@ export function AdminProductsClient() {
             </select>
             <input
               className="input"
+              min="0"
+              step="1"
+              type="number"
+              placeholder="Stock opcional"
+              value={form.stockQuantity}
+              onChange={(event) => setForm({ ...form, stockQuantity: event.target.value })}
+            />
+            <input
+              className="input"
               placeholder="URL o ruta de foto"
               value={form.imagePath}
               onChange={(event) => setForm({ ...form, imagePath: event.target.value })}
@@ -396,7 +410,10 @@ export function AdminProductsClient() {
                   <td>{product.code}</td>
                   <td>{product.name}</td>
                   <td>${formatPrice(Number(product.price))}</td>
-                  <td>{product.stock_status === "available" ? "Disponible" : "Sin stock"}</td>
+                  <td>
+                    {product.stock_status === "available" ? "Disponible" : "Sin stock"}
+                    {product.stock_quantity !== null ? ` (${product.stock_quantity})` : ""}
+                  </td>
                   <td>{product.active ? "Activo" : "Inactivo"}</td>
                   <td>
                     <div className="table-actions">

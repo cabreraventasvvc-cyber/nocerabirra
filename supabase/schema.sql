@@ -53,6 +53,7 @@ create table public.products (
   promotion_starts_at timestamptz,
   promotion_ends_at timestamptz,
   stock_status text not null default 'available',
+  stock_quantity numeric(12, 2),
   active boolean not null default true,
   featured boolean not null default false,
   nocera_product boolean not null default false,

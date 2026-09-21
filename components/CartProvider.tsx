@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { siteConfig } from "@/lib/config";
 import { getEffectivePrice } from "@/lib/pricing";
+import { createBrowserSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 import type { CartItem, CheckoutData, Product } from "@/lib/types";
 
 type CartContextValue = {
@@ -16,6 +17,7 @@ type CartContextValue = {
   clearCart: () => void;
   openCart: () => void;
   closeCart: () => void;
+  reserveStock: () => Promise<{ ok: boolean; message?: string }>;
   buildWhatsappUrl: (checkout: CheckoutData) => string;
 };
 
@@ -50,11 +52,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     setItems((current) => {
       const existing = current.find((item) => item.product.id === product.id);
+      const nextQuantity = clampQuantity(product, (existing?.quantity ?? 0) + quantity);
       if (!existing) {
-        return [...current, { product, quantity }];
+        return [...current, { product, quantity: nextQuantity }];
       }
       return current.map((item) =>
-        item.product.id === product.id ? { ...item, quantity: item.quantity + quantity } : item
+        item.product.id === product.id ? { ...item, quantity: nextQuantity } : item
       );
     });
     setIsOpen(true);
@@ -71,7 +74,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
 
     setItems((current) =>
-      current.map((item) => (item.product.id === productId ? { ...item, quantity } : item))
+      current.map((item) =>
+        item.product.id === productId ? { ...item, quantity: clampQuantity(item.product, quantity) } : item
+      )
     );
   }
 
@@ -102,6 +107,31 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return `https://wa.me/${siteConfig.whatsappNumber}?text=${encodeURIComponent(lines.join("\n"))}`;
   }
 
+  async function reserveStock() {
+    const controlledItems = items.filter((item) => item.product.stockQuantity !== null && item.product.stockQuantity !== undefined);
+    if (controlledItems.length === 0 || !hasSupabaseConfig()) {
+      return { ok: true };
+    }
+
+    const supabase = createBrowserSupabaseClient();
+    const { data, error } = await supabase.rpc("decrement_product_stock", {
+      items_payload: controlledItems.map((item) => ({
+        product_id: item.product.id,
+        quantity: item.quantity
+      }))
+    });
+
+    if (error) {
+      return { ok: false, message: error.message };
+    }
+
+    const result = data as { ok?: boolean; message?: string } | null;
+    return {
+      ok: Boolean(result?.ok),
+      message: result?.message
+    };
+  }
+
   const value: CartContextValue = {
     items,
     total,
@@ -113,6 +143,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     clearCart,
     openCart: () => setIsOpen(true),
     closeCart: () => setIsOpen(false),
+    reserveStock,
     buildWhatsappUrl
   };
 
@@ -131,4 +162,13 @@ export function formatPrice(value: number) {
   return new Intl.NumberFormat("es-AR", {
     maximumFractionDigits: value % 1 === 0 ? 0 : 2
   }).format(value);
+}
+
+function clampQuantity(product: Product, quantity: number) {
+  const stockQuantity = product.stockQuantity;
+  if (stockQuantity === null || stockQuantity === undefined) {
+    return quantity;
+  }
+
+  return Math.min(quantity, Math.max(0, Math.floor(stockQuantity)));
 }
