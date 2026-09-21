@@ -17,11 +17,20 @@ export function AdminLoginClient() {
     setStatus("");
 
     const supabase = createBrowserSupabaseClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password
+    });
 
     setLoading(false);
     if (error) {
-      setStatus("No se pudo iniciar sesion. Revisar email, clave o permisos.");
+      const readableMessage = error.message.includes("Invalid login credentials")
+        ? "Email o clave incorrectos. Revisar que el usuario exista en Supabase y que la clave sea la misma."
+        : error.message.includes("Email not confirmed")
+          ? "El usuario existe, pero falta confirmarlo en Supabase."
+          : `No se pudo iniciar sesion: ${error.message}`;
+
+      setStatus(readableMessage);
       return;
     }
 
