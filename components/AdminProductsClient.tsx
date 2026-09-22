@@ -49,6 +49,8 @@ type ProductForm = {
   imagePath: string;
 };
 
+type StockFilter = "all" | "controlled" | "uncontrolled" | "out_of_stock" | "inactive";
+
 const emptyForm: ProductForm = {
   code: "",
   name: "",
@@ -76,14 +78,27 @@ export function AdminProductsClient() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [query, setQuery] = useState("");
+  const [stockFilter, setStockFilter] = useState<StockFilter>("all");
   const [form, setForm] = useState<ProductForm>(emptyForm);
+
+  const stockSummary = useMemo(
+    () => ({
+      total: products.length,
+      controlled: products.filter((product) => product.stock_quantity !== null).length,
+      uncontrolled: products.filter((product) => product.stock_quantity === null).length,
+      outOfStock: products.filter((product) => product.stock_status === "out_of_stock").length,
+      inactive: products.filter((product) => !product.active).length
+    }),
+    [products]
+  );
 
   const visibleProducts = useMemo(() => {
     const normalized = query.toLowerCase();
     return products.filter((product) =>
-      `${product.code ?? ""} ${product.name} ${product.brand ?? ""}`.toLowerCase().includes(normalized)
+      `${product.code ?? ""} ${product.name} ${product.brand ?? ""}`.toLowerCase().includes(normalized) &&
+      matchesStockFilter(product, stockFilter)
     );
-  }, [products, query]);
+  }, [products, query, stockFilter]);
 
   useEffect(() => {
     loadAdminData();
@@ -384,12 +399,44 @@ export function AdminProductsClient() {
             <h2>Productos</h2>
             <p>{visibleProducts.length} productos encontrados.</p>
           </div>
-          <input
-            className="input admin-search"
-            placeholder="Buscar por codigo, nombre o marca"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
+          <div className="admin-list-tools">
+            <input
+              className="input admin-search"
+              placeholder="Buscar por codigo, nombre o marca"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+            <select
+              className="select admin-filter"
+              value={stockFilter}
+              onChange={(event) => setStockFilter(event.target.value as StockFilter)}
+            >
+              <option value="all">Todos</option>
+              <option value="controlled">Con stock cargado</option>
+              <option value="uncontrolled">Sin control de stock</option>
+              <option value="out_of_stock">Sin stock</option>
+              <option value="inactive">Inactivos</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="admin-metrics">
+          <button className="metric-card" type="button" onClick={() => setStockFilter("all")}>
+            <span>Total</span>
+            <strong>{stockSummary.total}</strong>
+          </button>
+          <button className="metric-card" type="button" onClick={() => setStockFilter("controlled")}>
+            <span>Con stock</span>
+            <strong>{stockSummary.controlled}</strong>
+          </button>
+          <button className="metric-card" type="button" onClick={() => setStockFilter("uncontrolled")}>
+            <span>Sin control</span>
+            <strong>{stockSummary.uncontrolled}</strong>
+          </button>
+          <button className="metric-card" type="button" onClick={() => setStockFilter("out_of_stock")}>
+            <span>Sin stock</span>
+            <strong>{stockSummary.outOfStock}</strong>
+          </button>
         </div>
 
         <div className="table-scroll">
@@ -436,4 +483,24 @@ export function AdminProductsClient() {
       </section>
     </div>
   );
+}
+
+function matchesStockFilter(product: AdminProduct, filter: StockFilter) {
+  if (filter === "controlled") {
+    return product.stock_quantity !== null;
+  }
+
+  if (filter === "uncontrolled") {
+    return product.stock_quantity === null;
+  }
+
+  if (filter === "out_of_stock") {
+    return product.stock_status === "out_of_stock";
+  }
+
+  if (filter === "inactive") {
+    return !product.active;
+  }
+
+  return true;
 }
