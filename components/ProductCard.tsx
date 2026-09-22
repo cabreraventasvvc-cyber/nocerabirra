@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { formatPrice, useCart } from "./CartProvider";
 import { getEffectivePrice, hasActivePromotion } from "@/lib/pricing";
 import type { Product } from "@/lib/types";
 
 export function ProductCard({ product }: { product: Product }) {
   const cart = useCart();
+  const [added, setAdded] = useState(false);
   const canBuy = product.available && product.price > 0;
   const effectivePrice = getEffectivePrice(product);
   const isPromotional = hasActivePromotion(product);
@@ -39,8 +41,17 @@ export function ProductCard({ product }: { product: Product }) {
               "Consultar precio"
             )}
           </span>
-          <button className="button ghost" type="button" disabled={!canBuy} onClick={() => cart.addItem(product)}>
-            Agregar
+          <button
+            className="button ghost"
+            type="button"
+            disabled={!canBuy}
+            onClick={() => {
+              cart.addItem(product);
+              setAdded(true);
+              window.setTimeout(() => setAdded(false), 1400);
+            }}
+          >
+            {added ? "Agregado" : "Agregar"}
           </button>
         </div>
       </div>

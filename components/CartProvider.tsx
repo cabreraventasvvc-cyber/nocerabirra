@@ -60,7 +60,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         item.product.id === product.id ? { ...item, quantity: nextQuantity } : item
       );
     });
-    setIsOpen(true);
   }
 
   function removeItem(productId: string) {

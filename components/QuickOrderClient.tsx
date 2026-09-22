@@ -8,6 +8,7 @@ import { formatPrice, useCart } from "./CartProvider";
 export function QuickOrderClient({ products }: { products: Product[] }) {
   const [query, setQuery] = useState("");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [addedProductId, setAddedProductId] = useState<string | null>(null);
   const cart = useCart();
 
   const visibleProducts = useMemo(() => {
@@ -76,8 +77,17 @@ export function QuickOrderClient({ products }: { products: Product[] }) {
                 })
               }
             />
-            <button className="button ghost" type="button" disabled={!canBuy} onClick={() => cart.addItem(product, quantity)}>
-              Agregar
+            <button
+              className="button ghost"
+              type="button"
+              disabled={!canBuy}
+              onClick={() => {
+                cart.addItem(product, quantity);
+                setAddedProductId(product.id);
+                window.setTimeout(() => setAddedProductId(null), 1400);
+              }}
+            >
+              {addedProductId === product.id ? "Agregado" : "Agregar"}
             </button>
           </div>
         );
