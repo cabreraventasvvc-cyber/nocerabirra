@@ -73,6 +73,7 @@ export function AdminProductsClient() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [status, setStatus] = useState("");
   const [email, setEmail] = useState("");
   const [products, setProducts] = useState<AdminProduct[]>([]);
@@ -210,6 +211,39 @@ export function AdminProductsClient() {
     await loadAdminData();
   }
 
+  async function uploadProductImage(file: File) {
+    setUploadingImage(true);
+    setStatus("");
+
+    if (!file.type.startsWith("image/")) {
+      setStatus("El archivo elegido no parece ser una imagen.");
+      setUploadingImage(false);
+      return;
+    }
+
+    const supabase = createBrowserSupabaseClient();
+    const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const productCode = form.code.trim().toLowerCase() || form.id || "producto";
+    const safeCode = productCode.replace(/[^a-z0-9-]/g, "-");
+    const filePath = `${safeCode}-${Date.now()}.${extension}`;
+
+    const { error } = await supabase.storage.from("product-images").upload(filePath, file, {
+      cacheControl: "3600",
+      upsert: true
+    });
+
+    setUploadingImage(false);
+
+    if (error) {
+      setStatus(`No se pudo subir la foto: ${error.message}. Revisar el SQL de Storage.`);
+      return;
+    }
+
+    const { data } = supabase.storage.from("product-images").getPublicUrl(filePath);
+    setForm((current) => ({ ...current, imagePath: data.publicUrl }));
+    setStatus("Foto subida. Ahora guarda el producto para aplicar el cambio.");
+  }
+
   async function toggleActive(product: AdminProduct) {
     const supabase = createBrowserSupabaseClient();
     const { error } = await supabase.from("products").update({ active: !product.active }).eq("id", product.id);
@@ -341,6 +375,26 @@ export function AdminProductsClient() {
               value={form.imagePath}
               onChange={(event) => setForm({ ...form, imagePath: event.target.value })}
             />
+            <label className="file-upload">
+              <span>{uploadingImage ? "Subiendo foto..." : "Subir foto"}</span>
+              <input
+                type="file"
+                accept="image/*"
+                disabled={uploadingImage}
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) {
+                    void uploadProductImage(file);
+                    event.target.value = "";
+                  }
+                }}
+              />
+            </label>
+            {form.imagePath && (
+              <div className="admin-image-preview">
+                <img src={form.imagePath} alt="Vista previa del producto" />
+              </div>
+            )}
             <textarea
               className="textarea full"
               placeholder="Descripcion"

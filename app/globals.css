@@ -719,6 +719,37 @@ img {
   font-weight: 800;
 }
 
+.file-upload {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.file-upload input {
+  display: none;
+}
+
+.admin-image-preview {
+  overflow: hidden;
+  min-height: 120px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+}
+
+.admin-image-preview img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+
 .footer {
   padding: 36px 0;
   background: var(--black);
