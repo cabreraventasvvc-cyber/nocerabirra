@@ -29,8 +29,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
             <footer className="footer">
               <div className="section-inner footer-inner">
-                <span>Nocera Distribuidora y Birra</span>
-                <span>Etapa 1 - sin Nocera Bar</span>
+                <span>Nocera Birra</span>
+                <span>Todos los derechos reservados.</span>
               </div>
             </footer>
           </div>
