@@ -23,7 +23,7 @@ export const contactPlaceholders = {
 } as const;
 
 export const contactLinks = {
-  email: `mailto:${siteConfig.email}`,
+  email: `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(siteConfig.email)}&su=${encodeURIComponent("Consulta desde la web Nocera Birra")}`,
   whatsapp: `https://wa.me/${siteConfig.whatsappNumber}`,
   maps: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(siteConfig.location)}`
 } as const;

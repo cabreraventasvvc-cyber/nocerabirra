@@ -27,7 +27,7 @@ export default function ContactPage() {
               <a className="button" href={contactLinks.whatsapp}>
                 WhatsApp
               </a>
-              <a className="button ghost" href={contactLinks.email}>
+              <a className="button ghost" href={contactLinks.email} target="_blank" rel="noreferrer">
                 Mail
               </a>
               <a className="button ghost" href={contactLinks.maps}>
