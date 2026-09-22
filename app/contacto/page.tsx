@@ -1,4 +1,5 @@
 import { contactLinks, siteConfig } from "@/lib/config";
+import { ContactFormClient } from "@/components/ContactFormClient";
 
 export const metadata = {
   title: "Contacto"
@@ -13,7 +14,7 @@ export default function ContactPage() {
             <p className="eyebrow">Contacto</p>
             <h1>Hablemos</h1>
             <p>
-              Formulario general preparado para guardar consultas cuando conectemos Supabase.
+              Envianos tu consulta y el equipo de Nocera Distribuidora se comunicara a la brevedad.
             </p>
             <div className="panel">
               <strong>Nocera Distribuidora</strong>
@@ -37,20 +38,7 @@ export default function ContactPage() {
               </a>
             </div>
           </div>
-          <form className="panel">
-            <div className="form-grid">
-              <input className="input full" placeholder="Nombre" />
-              <input className="input" placeholder="Telefono" />
-              <input className="input" type="email" placeholder="Email" />
-              <input className="input full" placeholder="Motivo" />
-              <textarea className="textarea full" placeholder="Mensaje" />
-            </div>
-            <div className="form-actions">
-              <button className="button" type="button">
-                Enviar consulta
-              </button>
-            </div>
-          </form>
+          <ContactFormClient />
           <div className="media-panel">
             <img src="/images/nocera-cartel.jpg" alt="Nocera Birra" />
           </div>
